@@ -1,12 +1,13 @@
 package main
+
 import (
 	"fmt"
+	"strings"
 )
 func main() {
 	fmt.Println("Hello, World!")
 }
 
-cleanInput(text string) []string {
-	stringParts := text.split(text, " ")
-	return stringParts
+func cleanInput(text string) []string {
+	return strings.Fields(text)
 }

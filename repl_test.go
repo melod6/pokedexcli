@@ -13,17 +13,30 @@ func TestCleanInput(t *testing.T) {
 			input: "  hello world  ",
 			expected: []string{"hello", "world"},
 		},
-		// more cases here
+		{
+			input: "banana land",
+			expected: []string{"banana", "land"},
+		},
+		{
+			input: "n0 fear shakespeare",
+			expected: []string{"n0", "fear", "shakespeare"},
+		},
+		{
+			input: "<F19>65 dskj *(_)",
+			expected: []string{"<F19>65", "dskj", "*(_)"},
+		},
 	}
 	for _, c := range cases {
-		actual := cleanInput(c, input)
-		// Check length of expected slice against actual slice
-		// use t.Errorf to print error message and fail test if it doesn't match
+		actual := cleanInput(c.input)
+		if len(actual) != len(c.expected) {
+			t.Fatalf("Error: slice lengths do not match!\nActual: %d, Expected: %d", len(actual), len(c.expected))
+		}
 		for i := range actual {
 			word := actual[i]
 			expectedWord := c.expected[i]
-			// check each word in the slice
-			// if they don't match, use t.Errorf to print error message and fail the test
+			if word != expectedWord	{
+				t.Errorf("Error: processed words do not match!\n'%s' compared to '%s'", word, expectedWord)
+			}
 		}
 	}
 }
