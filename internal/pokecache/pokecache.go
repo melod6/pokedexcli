@@ -14,14 +14,17 @@ func NewCache(interval time.Duration) {
 }
 
 func (c *Cache) Add(key string, val []byte) {
-	c.cacheEntries[key] = val
+	newCacheEntry := cacheEntry{time.Now(), val}
+	c.cacheEntries[key] = newCacheEntry
 }
 
 func (c *Cache) Get(key string) ([]byte, bool) {
-	if ok := c.cacheEntries[key]; ok == nil {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	if _, ok := c.cacheEntries[key]; !ok {
 		return nil, false
 	}
-	return c.cacheEntries[key], true
+	return c.cacheEntries[key].val, true
 }
 
 func (c *Cache) reapLoop(interval time.Duration) {
@@ -29,7 +32,7 @@ func (c *Cache) reapLoop(interval time.Duration) {
 	for range ticker.C {
 		c.mutex.Lock()
 		for key, entry := range c.cacheEntries {
-			if time.Now().Sub(entry.createdAt) > interval {
+			if time.Since(entry.createdAt) > interval {
 				delete(c.cacheEntries, key)
 			}
 		}
