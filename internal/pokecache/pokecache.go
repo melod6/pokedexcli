@@ -10,7 +10,12 @@ type Cache struct {
 	mutex        sync.Mutex
 }
 
-func NewCache(interval time.Duration) {
+func NewCache(interval time.Duration) *Cache {
+	c := &Cache{
+		cacheEntries: make(map[string]cacheEntry),
+	}
+	go c.reapLoop(interval)
+	return c
 }
 
 func (c *Cache) Add(key string, val []byte) {
@@ -21,10 +26,12 @@ func (c *Cache) Add(key string, val []byte) {
 func (c *Cache) Get(key string) ([]byte, bool) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if _, ok := c.cacheEntries[key]; !ok {
+
+	ce, ok := c.cacheEntries[key]
+	if !ok {
 		return nil, false
 	}
-	return c.cacheEntries[key].val, true
+	return ce.val, true
 }
 
 func (c *Cache) reapLoop(interval time.Duration) {
