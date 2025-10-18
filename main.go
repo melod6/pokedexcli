@@ -1,14 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"strings"
 	"bufio"
-	"os"
-	"net/http"
-	"io"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 )
+
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	configFile = config{
@@ -39,24 +40,24 @@ var configFile config
 func init() {
 	supportedCommands = map[string]cliCommand{
 		"exit": {
-			name: "exit",
+			name:        "exit",
 			description: "Exit the Pokedex",
-			callback: commandExit,
+			callback:    commandExit,
 		},
 		"help": {
-			name: "help",
+			name:        "help",
 			description: "Displays a help message",
-			callback: commandHelp,
+			callback:    commandHelp,
 		},
 		"map": {
-			name: "map",
+			name:        "map",
 			description: "Displays 20 map locations. Subsequent uses display the next 20 locations.",
-			callback: commandMap,
+			callback:    commandMap,
 		},
 		"mapb": {
-			name: "mapb",
+			name:        "mapb",
 			description: "Displays the previous 20 map locations.",
-			callback: commandMapBack,
+			callback:    commandMapBack,
 		},
 	}
 }
@@ -83,18 +84,18 @@ func commandExit(c *config) error {
 }
 
 func commandHelp(c *config) error {
-	fmt.Println("Welcome to the Pokedex!\nUsage:\n")
+	fmt.Println("Welcome to the Pokedex!\nUsage:")
 	for key, value := range supportedCommands {
 		fmt.Printf("%s: %s\n", key, value.description)
 	}
 	return nil
 }
 
-type locationAreaResonse struct {
-	Count    int `json:"count"`
+type locationAreaResponse struct {
+	Count    int    `json:"count"`
 	Next     string `json:"next"`
 	Previous string `json:"previous"`
-	Results[]struct {
+	Results  []struct {
 		Name string `json:"name"`
 		URL  string `json:"url"`
 	} `json:"results"`
@@ -112,14 +113,17 @@ func commandMap(c *config) error {
 	body, err := io.ReadAll(res.Body)
 	defer res.Body.Close()
 	if res.StatusCode > 299 {
-		return fmt.Errorf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+		return fmt.Errorf("response failed with status code: %d and\nbody: %s", res.StatusCode, body)
 	}
 	if err != nil {
 		return err
 	}
-	locationAreaRes := locationAreaResonse{}
+	locationAreaRes := locationAreaResponse{}
 	err = json.Unmarshal(body, &locationAreaRes)
-	c.next = fmt.Sprintf("%s%s", locationAreaRes.Next, locationAreaRes.Count)
+	if err != nil {
+		return nil
+	}
+	c.next = fmt.Sprintf("%s%d", locationAreaRes.Next, locationAreaRes.Count)
 	c.previous = locationAreaRes.Previous
 	for _, location := range locationAreaRes.Results {
 		fmt.Println(location.Name)
@@ -139,14 +143,17 @@ func commandMapBack(c *config) error {
 	body, err := io.ReadAll(res.Body)
 	defer res.Body.Close()
 	if res.StatusCode > 299 {
-		return fmt.Errorf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+		return fmt.Errorf("response failed with status code: %d and\nbody: %s", res.StatusCode, body)
 	}
 	if err != nil {
 		return err
 	}
-	locationAreaRes := locationAreaResonse{}
+	locationAreaRes := locationAreaResponse{}
 	err = json.Unmarshal(body, &locationAreaRes)
-	c.next = fmt.Sprintf("%s%s", locationAreaRes.Next, locationAreaRes.Count)
+	if err != nil {
+		return nil
+	}
+	c.next = fmt.Sprintf("%s%d", locationAreaRes.Next, locationAreaRes.Count)
 	c.previous = locationAreaRes.Previous
 	for _, location := range locationAreaRes.Results {
 		fmt.Println(location.Name)
