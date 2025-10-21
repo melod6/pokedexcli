@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
+
+	"github/melod6/pokedexcli/internal/pokecache"
 )
 
 func main() {
@@ -33,9 +36,16 @@ func main() {
 	}
 }
 
-var supportedCommands map[string]cliCommand
+var (
+	supportedCommands map[string]cliCommand
+	pokeCache         pokecache.Cache
+	configFile        config
+)
 
-var configFile config
+const (
+	cacheInterval       = time.Duration(5 * time.Second)
+	startingMapLocation = "https://pokeapi.co/api/v2/location-area/"
+)
 
 func init() {
 	supportedCommands = map[string]cliCommand{
@@ -60,6 +70,7 @@ func init() {
 			callback:    commandMapBack,
 		},
 	}
+	pokeCache = *pokecache.NewCache(cacheInterval)
 }
 
 func cleanInput(text string) []string {
@@ -102,37 +113,43 @@ type locationAreaResponse struct {
 }
 
 func commandMap(c *config) error {
-	url := "https://pokeapi.co/api/v2/location-area/"
+	url := startingMapLocation
 	if c.next != "" {
 		url = c.next
 	}
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	body, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
-	if res.StatusCode > 299 {
-		return fmt.Errorf("response failed with status code: %d and\nbody: %s", res.StatusCode, body)
-	}
-	if err != nil {
-		return err
-	}
-	locationAreaRes := locationAreaResponse{}
-	err = json.Unmarshal(body, &locationAreaRes)
-	if err != nil {
+	nextURL, exists := pokeCache.Get(url)
+	if !exists {
+		res, err := http.Get(url)
+		if err != nil {
+			return err
+		}
+		body, err := io.ReadAll(res.Body)
+		defer res.Body.Close()
+		if res.StatusCode > 299 {
+			return fmt.Errorf("response failed with status code: %d and\nbody: %s", res.StatusCode, body)
+		}
+		if err != nil {
+			return err
+		}
+		locationAreaRes := locationAreaResponse{}
+		err = json.Unmarshal(body, &locationAreaRes)
+		if err != nil {
+			return nil
+		}
+		c.next = fmt.Sprintf("%s%d", locationAreaRes.Next, locationAreaRes.Count)
+		c.previous = locationAreaRes.Previous
+		for _, location := range locationAreaRes.Results {
+			fmt.Println(location.Name)
+		}
 		return nil
 	}
-	c.next = fmt.Sprintf("%s%d", locationAreaRes.Next, locationAreaRes.Count)
-	c.previous = locationAreaRes.Previous
-	for _, location := range locationAreaRes.Results {
-		fmt.Println(location.Name)
-	}
+	// TODO: get the data from the cache and set the new next and previous locations accordingly
+	fmt.Printf("%s\n", nextURL)
 	return nil
 }
 
 func commandMapBack(c *config) error {
-	url := "https://pokeapi.co/api/v2/location-area/"
+	url := startingMapLocation
 	if c.previous != "" {
 		url = c.previous
 	}

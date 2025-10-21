@@ -1,3 +1,4 @@
+// Package pokecache handles caching of data from pokeapi
 package pokecache
 
 import (
