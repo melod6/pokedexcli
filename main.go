@@ -117,7 +117,8 @@ func commandMap(c *config) error {
 	if c.next != "" {
 		url = c.next
 	}
-	nextURL, exists := pokeCache.Get(url)
+	locationAreaRes := locationAreaResponse{}
+	cachedLocationAreaRes, exists := pokeCache.Get(url)
 	if !exists {
 		res, err := http.Get(url)
 		if err != nil {
@@ -131,20 +132,22 @@ func commandMap(c *config) error {
 		if err != nil {
 			return err
 		}
-		locationAreaRes := locationAreaResponse{}
 		err = json.Unmarshal(body, &locationAreaRes)
 		if err != nil {
 			return nil
 		}
-		c.next = fmt.Sprintf("%s%d", locationAreaRes.Next, locationAreaRes.Count)
-		c.previous = locationAreaRes.Previous
-		for _, location := range locationAreaRes.Results {
-			fmt.Println(location.Name)
+		pokeCache.Add(url, body)
+	} else {
+		err := json.Unmarshal(cachedLocationAreaRes, &locationAreaRes)
+		if err != nil {
+			return nil
 		}
-		return nil
 	}
-	// TODO: get the data from the cache and set the new next and previous locations accordingly
-	fmt.Printf("%s\n", nextURL)
+	c.next = fmt.Sprintf("%s%d", locationAreaRes.Next, locationAreaRes.Count)
+	c.previous = locationAreaRes.Previous
+	for _, location := range locationAreaRes.Results {
+		fmt.Println(location.Name)
+	}
 	return nil
 }
 
@@ -153,22 +156,31 @@ func commandMapBack(c *config) error {
 	if c.previous != "" {
 		url = c.previous
 	}
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	body, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
-	if res.StatusCode > 299 {
-		return fmt.Errorf("response failed with status code: %d and\nbody: %s", res.StatusCode, body)
-	}
-	if err != nil {
-		return err
-	}
 	locationAreaRes := locationAreaResponse{}
-	err = json.Unmarshal(body, &locationAreaRes)
-	if err != nil {
-		return nil
+	cachedLocationAreaRes, exists := pokeCache.Get(url)
+	if !exists {
+		res, err := http.Get(url)
+		if err != nil {
+			return err
+		}
+		body, err := io.ReadAll(res.Body)
+		defer res.Body.Close()
+		if res.StatusCode > 299 {
+			return fmt.Errorf("response failed with status code: %d and\nbody: %s", res.StatusCode, body)
+		}
+		if err != nil {
+			return err
+		}
+		err = json.Unmarshal(body, &locationAreaRes)
+		if err != nil {
+			return nil
+		}
+		pokeCache.Add(url, body)
+	} else {
+		err := json.Unmarshal(cachedLocationAreaRes, &locationAreaRes)
+		if err != nil {
+			return nil
+		}
 	}
 	c.next = fmt.Sprintf("%s%d", locationAreaRes.Next, locationAreaRes.Count)
 	c.previous = locationAreaRes.Previous
