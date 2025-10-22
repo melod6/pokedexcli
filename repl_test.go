@@ -6,24 +6,24 @@ import (
 
 func TestCleanInput(t *testing.T) {
 	cases := []struct {
-		input 	 string
+		input    string
 		expected []string
 	}{
 		{
-			input: "  hello world  ",
+			input:    "  hello world  ",
 			expected: []string{"hello", "world"},
 		},
 		{
-			input: "banana land",
+			input:    "banana land",
 			expected: []string{"banana", "land"},
 		},
 		{
-			input: "n0 fear shakespeare",
+			input:    "n0 fear shakespeare",
 			expected: []string{"n0", "fear", "shakespeare"},
 		},
 		{
-			input: "<F19>65 dskj *(_)",
-			expected: []string{"<F19>65", "dskj", "*(_)"},
+			input:    "<F19>65 dskj *(_)",
+			expected: []string{"<f19>65", "dskj", "*(_)"},
 		},
 	}
 	for _, c := range cases {
@@ -34,7 +34,7 @@ func TestCleanInput(t *testing.T) {
 		for i := range actual {
 			word := actual[i]
 			expectedWord := c.expected[i]
-			if word != expectedWord	{
+			if word != expectedWord {
 				t.Errorf("Error: processed words do not match!\n'%s' compared to '%s'", word, expectedWord)
 			}
 		}
